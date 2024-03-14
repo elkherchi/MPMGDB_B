@@ -45,8 +45,7 @@ router.post('/Createelecteurs', upload.single('profil'), async (req, res) => {
 })
 router.get('/Getelecteurs', async (req, res) => {
     try {
-      const electeurs = await Electeur.find();
-      
+      const electeurs = await User.find({ role: 'electeur' });      
       res.send(electeurs);
     } catch (error) {
       res.status(500).send({ message: error.message });
