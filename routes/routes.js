@@ -7,51 +7,58 @@ const Candidat = require('../models/candidat')
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const storage = multer.diskStorage({
-  destination: function(req, file, cb) {
-    cb(null, 'uploads/') // Ensure this directory exists
-  },
-  filename: function(req, file, cb) {
-    cb(null, Date.now() + path.extname(file.originalname)) // Append extension
-  }
-});
-const fileFilter =function (req,file,cb){
-  if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-    return cb(new Error('Please upload'))
-  }
-  cb(null, true)
-}
-const upload = multer({ 
-  storage: storage,
-  fileFilter: fileFilter
-});
-router.use('/uploads', express.static('uploads'));
-
-router.post('/Createelecteurs', upload.single('profil'), async (req, res) => {
-  const electeur = new Electeur({
-    nom: req.body.nom,
-    prenom: req.body.prenom,
-    age: 20, // Assuming this is static for simplicity
-    telephone: req.body.telephone,
-    profil: req.file.filename  // Save file path
-  });
-  try {
-    const result = await electeur.save();
-    res.send(result);
-  } catch (error) {
-    console.log(error);
-    res.status(500).send(error);
+const fs = require('fs');
+filename= '';
+const mystorage= multer.diskStorage({
+  destination:'./uploads',
+  filename:(req , file , cb)=>{
+    let date =Date.now();
+    let fl = date + '.'+file.mimetype.split('/')[1];
+    cb(null,fl);
+    filename =fl;
   }
 })
-router.get('/Getelecteurs', async (req, res) => {
-    try {
-      const electeurs = await User.find({ role: 'electeur' });      
-      res.send(electeurs);
-    } catch (error) {
-      res.status(500).send({ message: error.message });
-    }
-  });
-  router.get('/GetCandidat', async (req, res) => {
+const upload = multer({storage: mystorage});
+
+router.post("/CreateCandidats", upload.any('profile'), async (req, res) => {
+  try {
+    const candidat = new Candidat(req.body);
+    candidat.profile = filename;
+    await candidat.save();
+    filename='';
+    console.log(candidat)
+  } catch (err) {
+    res.json({
+      message: err.message,
+      type: "danger",
+    });
+  }
+})
+// router.post('/CreateCandidats', upload.any('profile'), async (req, res) => {
+//   try {
+//     // if (!req.profile) {
+//     //   return res.status(400).send({ message: 'No file uploaded' });
+//     // }
+//     const file = req.file;
+//     console.log(file.filename);
+//     const candidat = new Candidat({
+//       nom: req.body.nom,
+//       parti: req.body.parti,
+//       circonscription: req.body.circonscription, 
+//       profile : `http://localhost:4000/profile/${req.file.filename}`
+//     });
+
+//     const result = await candidat.save();
+//     res.send(result);
+//     console.log(result)
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).send(error);
+//   }  
+// });
+
+
+router.get('/GetCandidat', async (req, res) => {
     try {
       const candidat = await Candidat.find();
       
@@ -62,6 +69,17 @@ router.get('/Getelecteurs', async (req, res) => {
     }
   });
 
+
+///////////////////////////////////////////////////////////////////////////////////////////
+
+  router.get('/Getelecteurs', async (req, res) => {
+    try {
+      const electeurs = await User.find({ role: 'electeur' });      
+      res.send(electeurs);
+    } catch (error) {
+      res.status(500).send({ message: error.message });
+    }
+  });
   // Get electeur by ID endpoint
 router.get('/GetelecteurbyID/:id', async (req, res) => {
     try {
@@ -110,7 +128,7 @@ router.post('/register', async (req, res) => {
         prenom: req.body.prenom,
         email: req.body.email,
         password: hashedPassword,
-        role:"candidat",
+        role:"electeur",
     })
 
     const result = await user.save()
