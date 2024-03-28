@@ -8,6 +8,7 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const candidat = require('../models/candidat');
 filename= '';
 const mystorage= multer.diskStorage({
   destination:'./uploads',
@@ -49,8 +50,6 @@ router.get('/GetCandidat', async (req, res) => {
   });
 
 
-///////////////////////////////////////////////////////////////////////////////////////////
-
   router.get('/Getelecteurs', async (req, res) => {
     try {
       const electeurs = await Electeur.find({});      
@@ -59,7 +58,6 @@ router.get('/GetCandidat', async (req, res) => {
       res.status(500).send({ message: error.message });
     }
   });
-  // Get electeur by ID endpoint
 router.get('/GetelecteurbyID/:id', async (req, res) => {
     try {
       const electeur = await Electeur.findById(req.params.id);
@@ -97,27 +95,39 @@ router.delete('/Deleteelecteurs/:id', async (req, res) => {
       res.status(500).send({ message: error.message });
     }
   });
-router.post('/register', async (req, res) => {
-    const salt = await bcrypt.genSalt(10)
-    const hashedPassword = await bcrypt.hash(req.body.password, salt)
+  router.post('/register', async (req, res) => {
+    try {
+        // Vérifier d'abord si le NNI est valide en recherchant dans la collection de validation NNI
+        const validationNni = await candidat.findOne({ nni: req.body.nni });
+        if (!validationNni) {
+            return res.status(400).send({ message: 'NNI invalide' });
+        }
+        
+        // Si le NNI est valide, continuer avec le processus d'inscription
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(req.body.password, salt);
 
-    const user = new User({
-        nni : req.body.nni,
-        nom: req.body.nom,
-        prenom: req.body.prenom,
-        email: req.body.email,
-        password: hashedPassword,
-        role:"electeur",
-    })
+        const user = new User({
+            nni : req.body.nni,
+            email: req.body.email,
+            password: hashedPassword,
+            role: "candidat",
+        });
 
-    const result = await user.save()
+        const result = await user.save();
 
-    const {password, ...data} = await result.toJSON()
+        // Modifier la valeur de la propriété "inscrit" dans le document du candidat correspondant
+        await Candidat.updateOne({ nni: req.body.nni }, { inscrit: true });
 
-    res.send(data)
-    console.log(data)
+        const { password, ...data } = await result.toJSON();
 
-})
+        res.send(data);
+        console.log(data);
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+});
+
 
 router.post('/login', async (req, res) => {
     const user = await User.findOne({email: req.body.email})
@@ -179,5 +189,34 @@ router.post('/logout', (req, res) => {
         message: 'success'
     })
 })
+router.post('/createCandidat', async (req, res) => {
+  try {
+      const candidatData = {
+          nom: req.body.nom,
+          prenom: req.body.prenom,
+          nni: req.body.nni,
+          sexe: req.body.sexe,
+          age: req.body.age,
+          inscrit: req.body.inscrit || false // Valeur par défaut si non fournie
+      };
 
+      const newCandidat = await Candidat.create(candidatData);
+
+      res.status(201).send(newCandidat);
+  } catch (error) {
+      res.status(500).send({ message: error.message });
+  }
+});
+
+router.delete('/deleteCandidatByNni/:nni', async (req, res) => {
+  try {
+      const deletedCandidat = await Candidat.deleteOne({ nni: req.params.nni });
+      if (deletedCandidat.deletedCount === 0) {
+          return res.status(404).send({ message: 'Aucun candidat trouvé avec ce NNI' });
+      }
+      res.send({ message: 'Candidat supprimé avec succès' });
+  } catch (error) {
+      res.status(500).send({ message: error.message });
+  }
+});
 module.exports = router;
