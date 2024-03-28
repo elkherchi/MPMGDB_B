@@ -34,28 +34,7 @@ router.post("/Createelecteurs", upload.any('profile'), async (req, res) => {
     });
   }
 })
-// router.post('/CreateCandidats', upload.any('profile'), async (req, res) => {
-//   try {
-//     // if (!req.profile) {
-//     //   return res.status(400).send({ message: 'No file uploaded' });
-//     // }
-//     const file = req.file;
-//     console.log(file.filename);
-//     const candidat = new Candidat({
-//       nom: req.body.nom,
-//       parti: req.body.parti,
-//       circonscription: req.body.circonscription, 
-//       profile : `http://localhost:4000/profile/${req.file.filename}`
-//     });
 
-//     const result = await candidat.save();
-//     res.send(result);
-//     console.log(result)
-//   } catch (error) {
-//     console.log(error);
-//     res.status(500).send(error);
-//   }  
-// });
 
 
 router.get('/GetCandidat', async (req, res) => {
