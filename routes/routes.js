@@ -20,13 +20,13 @@ const mystorage= multer.diskStorage({
 })
 const upload = multer({storage: mystorage});
 
-router.post("/CreateCandidats", upload.any('profile'), async (req, res) => {
+router.post("/Createelecteurs", upload.any('profile'), async (req, res) => {
   try {
-    const candidat = new Candidat(req.body);
-    candidat.profile = filename;
-    await candidat.save();
+    const electeur = new Electeur(req.body);
+    electeur.profile = filename;
+    await electeur.save();
     filename='';
-    console.log(candidat)
+    console.log(electeur)
   } catch (err) {
     res.json({
       message: err.message,
@@ -53,7 +53,7 @@ router.get('/GetCandidat', async (req, res) => {
 
   router.get('/Getelecteurs', async (req, res) => {
     try {
-      const electeurs = await User.find({ role: 'electeur' });      
+      const electeurs = await Electeur.find({});      
       res.send(electeurs);
     } catch (error) {
       res.status(500).send({ message: error.message });
