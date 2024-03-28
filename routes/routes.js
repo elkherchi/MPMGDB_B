@@ -101,6 +101,7 @@ router.put('/Updateelecteurs/:id', async (req, res) => {
         return res.status(404).send({ message: 'Electeur not found' });
       }
       res.send(electeur);
+      console.log(electeur)
     } catch (error) {
       res.status(500).send({ message: error.message });
     }
